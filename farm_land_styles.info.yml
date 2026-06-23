@@ -1,0 +1,9 @@
+name: Farm Land Styles
+description: 'Adds map color and line style fields to land assets.'
+type: module
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - farm:farm_map
+  - farm:farm_ui_map
+  - farm:farm_land

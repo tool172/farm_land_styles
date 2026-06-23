@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_land_styles
+id: farm_land_styles
+label: 'Farm Land Styles'
+description: 'Applies per-asset map color and line style to land asset layers.'
+library: 'farm_land_styles/behavior_farm_land_styles'
+settings: {}

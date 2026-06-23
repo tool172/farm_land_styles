@@ -1,0 +1,125 @@
+<?php
+
+/**
+ * @file
+ * Adds map_color and map_line_style fields to land assets.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\views\ViewExecutable;
+
+/**
+ * Implements hook_farm_entity_bundle_field_info().
+ *
+ * Adds map_color and map_line_style to the land asset bundle.
+ * Drupal's entity system creates the storage tables automatically on install.
+ */
+function farm_land_styles_farm_entity_bundle_field_info(EntityTypeInterface $entity_type, string $bundle): array {
+  $fields = [];
+
+  if ($entity_type->id() !== 'asset' || $bundle !== 'land') {
+    return $fields;
+  }
+
+  $factory = \Drupal::service('farm_field.factory');
+
+  // Color dropdown. The key IS the hex value so the JS can use it directly
+  // without a lookup table — feature.get('map_color') returns '#3b82f6' etc.
+  $fields['map_color'] = $factory->bundleFieldDefinition([
+    'type'        => 'list_string',
+    'label'       => t('Map color'),
+    'description' => t('Line and outline color shown on the map. Leave empty to use the default color for this land type.'),
+    'allowed_values' => [
+      '#3b82f6' => t('Blue'),
+      '#0ea5e9' => t('Sky blue'),
+      '#06b6d4' => t('Cyan'),
+      '#14b8a6' => t('Teal'),
+      '#22c55e' => t('Green'),
+      '#84cc16' => t('Lime'),
+      '#15803d' => t('Dark green'),
+      '#65a30d' => t('Olive'),
+      '#eab308' => t('Yellow'),
+      '#f59e0b' => t('Amber'),
+      '#f97316' => t('Orange'),
+      '#ef4444' => t('Red'),
+      '#f43f5e' => t('Rose'),
+      '#ec4899' => t('Pink'),
+      '#a855f7' => t('Purple'),
+      '#6366f1' => t('Indigo'),
+      '#1e3a8a' => t('Navy'),
+      '#92400e' => t('Brown'),
+      '#7f1d1d' => t('Maroon'),
+      '#6b7280' => t('Gray'),
+      '#1f2937' => t('Black'),
+      '#ffffff' => t('White'),
+    ],
+    'weight' => ['form' => 90, 'view' => 90],
+  ]);
+
+  $fields['map_line_style'] = $factory->bundleFieldDefinition([
+    'type'        => 'list_string',
+    'label'       => t('Map line style'),
+    'description' => t('Solid or dashed outline on the map.'),
+    'allowed_values' => [
+      'solid'  => t('Solid'),
+      'dashed' => t('Dashed'),
+    ],
+    'weight' => ['form' => 91, 'view' => 91],
+  ]);
+
+  return $fields;
+}
+
+/**
+ * Implements hook_entity_form_display_alter().
+ *
+ * Forces map_color and map_line_style to use the select dropdown widget
+ * instead of the default radio-button (options_buttons) widget.
+ */
+function farm_land_styles_entity_form_display_alter(EntityFormDisplayInterface &$form_display, array $context): void {
+  if ($context['entity_type'] !== 'asset' || $context['bundle'] !== 'land') {
+    return;
+  }
+
+  foreach (['map_color', 'map_line_style'] as $field_name) {
+    $component = $form_display->getComponent($field_name);
+    if (!$component || $component['type'] === 'options_select') {
+      continue;
+    }
+    $form_display->setComponent($field_name, [
+      'type'                 => 'options_select',
+      'weight'               => $component['weight'],
+      'region'               => $component['region'] ?? 'content',
+      'settings'             => [],
+      'third_party_settings' => [],
+    ]);
+  }
+}
+
+/**
+ * Implements hook_views_pre_view().
+ *
+ * Injects map_color and map_line_style into the farm_asset_geojson view so
+ * they appear as feature properties. The 'string' formatter outputs the raw
+ * stored key (e.g. '#3b82f6', 'dashed') rather than the human-readable label.
+ */
+function farm_land_styles_views_pre_view(ViewExecutable $view, string $display_id, array &$args): void {
+  if ($view->id() !== 'farm_asset_geojson') {
+    return;
+  }
+
+  foreach (['map_color', 'map_line_style'] as $field_name) {
+    $view->addHandler($display_id, 'field', 'asset__' . $field_name, $field_name . '_value', [
+      'id'        => $field_name . '_value',
+      'table'     => 'asset__' . $field_name,
+      'field'     => $field_name . '_value',
+      'label'     => $field_name,
+      'exclude'   => FALSE,
+      'type'      => 'list_key',
+      'plugin_id' => 'field',
+    ]);
+  }
+}

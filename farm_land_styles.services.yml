@@ -1,0 +1,5 @@
+services:
+  farm_land_styles.map_render_event_subscriber:
+    class: Drupal\farm_land_styles\EventSubscriber\MapRenderEventSubscriber
+    tags:
+      - { name: event_subscriber }

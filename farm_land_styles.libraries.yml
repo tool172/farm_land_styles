@@ -1,0 +1,5 @@
+behavior_farm_land_styles:
+  js:
+    js/farmOS.map.behaviors.farm_land_styles.js: {}
+  dependencies:
+    - farm_map/farm_map
